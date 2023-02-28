@@ -9,7 +9,21 @@ import re
 
 from pydub import AudioSegment
 
+# TODO: Support copying of almbum art (folder.jpg)
+# TODO: Change skipped log file and messages to timestamped log or "messages.log"
+# TODO: Update to use argparse for command-line arguments
+# TODO: Implement in-place "fix" operation
+# TODO: Determine if we want to completely replace existing tags
 
+# Configuration variables, would like to move these to argparse command line arguments
+baseInputDir = "D:\\MP3_192\\Austin Wintory"
+baseOutputDir = "D:\\plex-music-renamer"
+types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
+outputType = "mp3"
+operation = "convert"  # Can be convert, copy, fix, list, test
+
+
+# Used to mirror stdout to a log file; helps with debugging unattended test runs
 class Logger(object):
     def __init__(self):
         self.terminal = sys.stdout
@@ -20,31 +34,42 @@ class Logger(object):
         self.log.write(message)
 
 
-scriptStartTime = time.time()
+def writetag(path, artist, album, discNumber, trackNumber, title):
+    mutFileWritetag = mutagen.File(path, easy=True)
+    #mutFileWritetag.delete() # Maybe don't delete the original tag info, for now
+    mutFileWritetag.tags["albumartist"] = artist
+    mutFileWritetag.tags["album"] = album
+    mutFileWritetag.tags["discnumber"] = discNumber
+    mutFileWritetag.tags["tracknumber"] = str(int(trackNumber))
+    mutFileWritetag.tags["title"] = title
+    mutFileWritetag.save()
 
-baseInputDir = "U:\\Media\\Audio\\Music"
-baseOutputDir = "U:\\Media\\Audio\\Music (Copy-Fix)"
+
+# Begin timer for overall runtime tracker
+scriptStartTime = time.time()
 
 # Remove existing output directory
 shutil.rmtree(baseOutputDir)
 
-# Tee stdout to a file (does not work with "check_unicode"
+# Tee stdout to a file (does not work with "check_unicode"? Maybe OBE)
 #sys.stdout = Logger()
 
-types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
-outputTypes = ['.flac', '.mp3']
-outputType = "copy"
+# Get list of all applicable files (based on extension) in the input directory
 audioFiles = []
 for files in types:
     audioFiles.extend(glob.glob(os.path.join(baseInputDir, f"**/*{files}"), recursive=True))
 print(audioFiles)
 
+# Side task, keep track of all audio file tags in a csv for easy data crunching later
 with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
     csvwriter = csv.writer(csvfile)
     csvwriter.writerow(["Artist", "Album", "Disc", "Track", "Title"])
+    # This log used for specific info/warning/error messages for the user (dont' want to lose them in the stdout noise)
     with open("skipped_files.log", "w", encoding="utf-8") as skippedFilesLog:
+        # These two variables used to monitor real-time progress
         counter = 0
         processingTimes = []
+        # Iterate through each file, extract essential tags, if present, and perform the requested operation
         for f in audioFiles:
             fileStartTime = time.time()
             counter += 1
@@ -78,16 +103,6 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                     trackNumberStr = f"{trackNumberStr.split('/')[0]}"
                 trackNumber = f"{int(trackNumberStr):03d}"
                 title = mutFile['title'][0]
-            # ID3 Tags (deprecated since moving to EasyID3)
-            elif ("TPE2" in mutFile.keys() or "TPE1" in mutFile.keys()) and "TALB" in mutFile.keys() and "TRCK" in mutFile.keys() and "TIT2" in mutFile.keys():
-                artist = mutFile['TPE2'][0] if "TPE2" in mutFile.keys() else mutFile['TPE1'][0]
-                album = mutFile['TALB'][0]
-                discNumber = mutFile['TPOS'][0] if 'TPOS' in mutFile.keys() else "1"
-                try:
-                    trackNumber = f"{int(+mutFile['TRCK']):02d}"    # The unary plus pulls only the current track number (excluding the total track count)
-                except ValueError:
-                    trackNumber = 0
-                title = mutFile['TIT2'][0]
             else:
                 print("ERROR: Missing essential file tags:", f)
                 skippedFilesLog.write(f'Missing essential file tags: {f} AlbumArtist:{"albumartist" in mutFile.keys()} Artist:{"artist" in mutFile.keys()} Album:{"album" in mutFile.keys()} Track:{"tracknumber" in mutFile.keys()} Title:{"title" in mutFile.keys()}\n')
@@ -99,52 +114,39 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
             outputPath = os.path.join(baseOutputDir,
                                       re.sub(subPattern, '', str(artist).rstrip(".")),
                                       re.sub(subPattern, '', str(album).rstrip(".")),
-                                      re.sub(subPattern, '', f"{discNumber}{trackNumber} - {re.sub(':', '-', title)}") + f"{os.path.splitext(f)[1] if outputType not in outputTypes else outputType}")
+                                      re.sub(subPattern, '', f"{discNumber}{trackNumber} - {re.sub(':', '-', title)}") + f"{os.path.splitext(f)[1] if operation != 'convert' else ('.' + outputType)}")
             if len(outputPath) + 1 > 260:
                 print("WARNING: Output path exceeds Windows path limitations:", f)
             else:
                 print(f"\tDestination: {outputPath}")
 
-            # Copy/convert to output path
+            # Do operation
             os.makedirs(os.path.dirname(outputPath), exist_ok=True)
-            if outputType == "test":
-                print("\tTesting...")
-            elif outputType == "list":
-                print(f"\t[{artist}] [{album}] [{discNumber}] [{trackNumber}] [{title}]")
-            elif outputType is None or outputType == "copy" or os.path.splitext(f)[1] == outputType:
-                # Do a non-converting copy if the output type isn't specified or the source and destination extensions are the same
-                #shutil.copy(f, outputPath)
+            if operation == "convert" and os.path.splitext(f)[1][1:] != outputType:
+                if outputType == "flac":
+                    print("\tConverting...")
+                    audioFile = AudioSegment.from_file(f)
+                    audioFile.export(outputPath, format="flac")
+                    writetag(outputPath, artist, album, discNumber, trackNumber, title)
+                elif outputType == "mp3":
+                    print("\tConverting...")
+                    audioFile = AudioSegment.from_file(f)
+                    audioFile.export(outputPath, format="mp3", bitrate="192k")
+                    writetag(outputPath, artist, album, discNumber, trackNumber, title)
+            elif operation == "copy" or os.path.splitext(f)[1][1:] == outputType:
+                # Do a non-converting copy if specified or the source and destination extensions are the same
                 print("\tCopying...")
-                audioFile = AudioSegment.from_file(f)
-                audioFile.export(outputPath,
-                                 tags={"album_artist": artist,
-                                       "album": album,
-                                       "disc": discNumber,
-                                       "track": trackNumber,
-                                       "title": title})
-            elif outputType == ".flac":
-                print("\tConverting...")
-                audioFile = AudioSegment.from_file(f)
-                audioFile.export(outputPath,
-                                 format="flac",
-                                 tags={"album_artist": artist,
-                                       "album": album,
-                                       "disc": discNumber,
-                                       "track": trackNumber,
-                                       "title": title})
-            elif outputType == ".mp3":
-                print("\tConverting...")
-                audioFile = AudioSegment.from_file(f)
-                audioFile.export(outputPath,
-                                 format="mp3",
-                                 bitrate="192k",
-                                 tags={"album_artist": artist,
-                                       "album": album,
-                                       "disc": discNumber,
-                                       "track": trackNumber,
-                                       "title": title})
+                shutil.copy(f, outputPath)
+                writetag(outputPath, artist, album, discNumber, trackNumber, title)
+            elif operation == "fix":
+                print("\tERROR: Unimplemented operation!!!")
+                continue
+            elif operation == "list":
+                print(f"\t[{artist}] [{album}] [{discNumber}] [{trackNumber}] [{title}]")
+            elif operation == "test":
+                print("\tTesting...")
             else:
-                print("\tERROR: Unsupported conversion!!!")
+                print("\tERROR: Unsupported operation!!!")
                 continue
 
             # Print out file processing time
