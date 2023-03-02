@@ -16,11 +16,11 @@ from pydub import AudioSegment
 # TODO: Determine if we want to completely replace existing tags
 
 # Configuration variables, would like to move these to argparse command line arguments
-baseInputDir = "D:\\MP3_192\\Austin Wintory"
-baseOutputDir = "D:\\plex-music-renamer"
+baseInputDir = "U:\\Media\\Audio\\Music"
+baseOutputDir = "U:\\Media\\Audio\\Music (Copy-Fix)"
 types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
 outputType = "mp3"
-operation = "convert"  # Can be convert, copy, fix, list, test
+operation = "copy"  # Can be convert, copy, fix, list, test
 
 
 # Used to mirror stdout to a log file; helps with debugging unattended test runs
@@ -133,7 +133,7 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                     audioFile = AudioSegment.from_file(f)
                     audioFile.export(outputPath, format="mp3", bitrate="192k")
                     writetag(outputPath, artist, album, discNumber, trackNumber, title)
-            elif operation == "copy" or os.path.splitext(f)[1][1:] == outputType:
+            elif operation == "copy" or (operation == "convert" and os.path.splitext(f)[1][1:] == outputType):
                 # Do a non-converting copy if specified or the source and destination extensions are the same
                 print("\tCopying...")
                 shutil.copy(f, outputPath)
