@@ -15,8 +15,8 @@ from pydub import AudioSegment
 # TODO: Determine if we want to completely replace existing tags
 
 # Configuration variables, would like to move these to argparse command line arguments
-baseInputDir = "D:\\Audio\\Music (Input)"
-baseOutputDir = "D:\\Audio\\Music (Output)"
+baseInputDir = "U:\\Media\\Audio\\Music"
+baseOutputDir = "U:\\Media\\Audio\\Music (Copy-Fix)"
 types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
 outputType = "mp3"
 operation = "copy"  # Can be convert, copy, fix, list, test
@@ -109,7 +109,7 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
             csvwriter.writerow([artist, album, discNumber, int(trackNumber), title])
 
             # Create a file in the source directory to store the album artist and album. This will aid in copying over any existing album art to the destination folder
-            with open(os.path.join(os.path.dirname(f), "folder.jpg.tag"), "w") as albumArtHelperFile:
+            with open(os.path.join(os.path.dirname(f), "folder.jpg.tag"), "w", encoding="utf-8") as albumArtHelperFile:
                 albumArtHelperFile.write(f"{artist}\n{album}")
 
             # Create the formatted output path
@@ -164,7 +164,7 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
         albumArtFiles = glob.glob(os.path.join(baseInputDir, f"**/folder.jpg"), recursive=True)
         print("\n", albumArtFiles)
         for albumArtFile in albumArtFiles:
-            with open(os.path.join(os.path.dirname(albumArtFile), "folder.jpg.tag"), "r") as albumArtHelperFile:
+            with open(os.path.join(os.path.dirname(albumArtFile), "folder.jpg.tag"), "r", encoding="utf-8") as albumArtHelperFile:
                 artist = albumArtHelperFile.readline().strip()
                 album = albumArtHelperFile.readline().strip()
                 subPattern = '[<>:"/\\\|\?\*]'
@@ -173,7 +173,7 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                                           re.sub(subPattern, '', str(album).rstrip(".")),
                                           "folder.jpg")
                 if len(outputPath) + 1 > 260:
-                    print("WARNING: Output path exceeds Windows path limitations:", f)
+                    print("WARNING: Output path exceeds Windows path limitations:", albumArtFile)
                 shutil.copy(albumArtFile, outputPath)
             os.remove(os.path.join(os.path.dirname(albumArtFile), "folder.jpg.tag"))
 
