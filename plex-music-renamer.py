@@ -15,11 +15,11 @@ from pydub import AudioSegment
 # TODO: Determine if we want to completely replace existing tags
 
 # Configuration variables, would like to move these to argparse command line arguments
-baseInputDir = "U:\\Media\\Audio\\Music"
-baseOutputDir = "U:\\Media\\Audio\\Music (Copy-Fix)"
+baseInputDir = "D:\\Audio\\Music (Input) - Copy"
+baseOutputDir = "D:\\Audio\\Music (Output)"
 types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
 outputType = "mp3"
-operation = "copy"  # Can be convert, copy, fix, list, test
+operation = "fix"  # Can be convert, copy, fix, list, test
 
 
 # Used to mirror stdout to a log file; helps with debugging unattended test runs
@@ -120,6 +120,8 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                                       re.sub(subPattern, '', f"{discNumber}{trackNumber} - {re.sub(':', '-', title)}") + f"{os.path.splitext(f)[1] if operation != 'convert' else ('.' + outputType)}")
             if len(outputPath) + 1 > 260:
                 print("WARNING: Output path exceeds Windows path limitations:", f)
+            elif operation == "fix":
+                print(f"\tDestination: {os.path.join(os.path.dirname(f), os.path.basename(outputPath))}")
             else:
                 print(f"\tDestination: {outputPath}")
 
@@ -142,8 +144,9 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                 shutil.copy(f, outputPath)
                 writetag(outputPath, artist, album, discNumber, trackNumber, title)
             elif operation == "fix":
-                print("\tERROR: Unimplemented operation!!!")
-                continue
+                print("\tFixing...")
+                os.rename(f, os.path.join(os.path.dirname(f), os.path.basename(outputPath)))
+                writetag(os.path.join(os.path.dirname(f), os.path.basename(outputPath)), artist, album, discNumber, trackNumber, title)
             elif operation == "list":
                 print(f"\t[{artist}] [{album}] [{discNumber}] [{trackNumber}] [{title}]")
             elif operation == "test":
