@@ -11,15 +11,14 @@ from pydub import AudioSegment
 
 # TODO: Change skipped log file and messages to timestamped log or "messages.log"
 # TODO: Update to use argparse for command-line arguments
-# TODO: Implement in-place "fix" operation
 # TODO: Determine if we want to completely replace existing tags
 
 # Configuration variables, would like to move these to argparse command line arguments
-baseInputDir = "D:\\Audio\\Music (Input) - Copy"
+baseInputDir = "D:\\Audio\\Music (Input)"
 baseOutputDir = "D:\\Audio\\Music (Output)"
 types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
 outputType = "mp3"
-operation = "fix"  # Can be convert, copy, fix, list, test
+operation = "list"  # Can be convert, copy, fix, list, test
 
 
 # Used to mirror stdout to a log file; helps with debugging unattended test runs
@@ -108,10 +107,6 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                 continue
             csvwriter.writerow([artist, album, discNumber, int(trackNumber), title])
 
-            # Create a file in the source directory to store the album artist and album. This will aid in copying over any existing album art to the destination folder
-            with open(os.path.join(os.path.dirname(f), "folder.jpg.tag"), "w", encoding="utf-8") as albumArtHelperFile:
-                albumArtHelperFile.write(f"{artist}\n{album}")
-
             # Create the formatted output path
             subPattern = '[<>:"/\\\|\?\*]'
             outputPath = os.path.join(baseOutputDir,
@@ -124,6 +119,10 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                 print(f"\tDestination: {os.path.join(os.path.dirname(f), os.path.basename(outputPath))}")
             else:
                 print(f"\tDestination: {outputPath}")
+
+            # Create a file in the source directory to store the output path (minus the filename). This will aid in copying over any existing album art or other files to the destination folder
+            with open(os.path.join(os.path.dirname(f), "folder.path"), "w", encoding="utf-8") as otherFilesHelperFile:
+                otherFilesHelperFile.write(f"{os.path.dirname(outputPath)}")
 
             # Do operation
             os.makedirs(os.path.dirname(outputPath), exist_ok=True)
@@ -163,28 +162,21 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
             processingTimes.append(fileEndTime - fileStartTime)
             print(f"Estimated Time Remaining: {((sum(processingTimes) / len(processingTimes)) * (len(audioFiles) - counter)):.2f} seconds")
 
-        # Copy over existing album artwork, if present. Delete the album art helper file.
-        albumArtFiles = glob.glob(os.path.join(baseInputDir, f"**/folder.jpg"), recursive=True)
-        print("\n", albumArtFiles)
-        for albumArtFile in albumArtFiles:
-            with open(os.path.join(os.path.dirname(albumArtFile), "folder.jpg.tag"), "r", encoding="utf-8") as albumArtHelperFile:
-                artist = albumArtHelperFile.readline().strip()
-                album = albumArtHelperFile.readline().strip()
-                subPattern = '[<>:"/\\\|\?\*]'
-                outputPath = os.path.join(baseOutputDir,
-                                          re.sub(subPattern, '', str(artist).rstrip(".")),
-                                          re.sub(subPattern, '', str(album).rstrip(".")),
-                                          "folder.jpg")
-                if len(outputPath) + 1 > 260:
-                    print("WARNING: Output path exceeds Windows path limitations:", albumArtFile)
-                shutil.copy(albumArtFile, outputPath)
-            os.remove(os.path.join(os.path.dirname(albumArtFile), "folder.jpg.tag"))
-
-        # List out any files not touched by the script
+        # Copy over existing album artwork and other non-touched files, if present.
         allFiles = glob.glob(os.path.join(baseInputDir, f"**/*"), recursive=True)
         for f in allFiles:
-            if os.path.isfile(f) and os.path.splitext(f)[1] not in types and os.path.basename(f) != "folder.jpg":
-                skippedFilesLog.write(f"INFO: Untouched File: {f}\n")
+            if os.path.isfile(f) and os.path.splitext(f)[1] not in types and os.path.basename(f) != "folder.path":
+                with open(os.path.join(os.path.dirname(f), "folder.path"), "r", encoding="utf-8") as otherFilesHelperFile:
+                    outputPath = os.path.join(otherFilesHelperFile.readline().strip(), os.path.basename(f))
+                    if len(outputPath) + 1 > 260:
+                        print("WARNING: Output path exceeds Windows path limitations:", f)
+                    shutil.copy(f, outputPath)
+
+        # Remove all the other file helper files
+        otherFilesHelperFiles = glob.glob(os.path.join(baseInputDir, f"**/folder.path"), recursive=True)
+        print(otherFilesHelperFiles)
+        for f in otherFilesHelperFiles:
+            os.remove(f)
 
 
 # Print out script execution time
