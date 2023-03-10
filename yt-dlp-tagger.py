@@ -3,14 +3,14 @@ import mutagen
 import os
 import re
 
-workingPath = "S:\\Video\\yt-dlp-downloads\\Audio\\Uncharted 4： A Thief's End - Original Soundtracks"
-searchPattern = "(\d+) - .+ OST - (.+)\.flac"
-album = "Uncharted 4： A Thief's End"
-albumArtist = "Henry Jackman"
+workingPath = "D:\\Audio\\Music (Input)\\DOS"
+searchPattern = "(\d+)-.+-(.+)\.flac"
+album = "Divinity: Original Sin"
+albumArtist = "Kirill Pokrovsky"
 disc = "1"
 
 files = []
-files.extend(glob.glob(os.path.join(workingPath, f"**/*.flac"), recursive=True))
+files.extend(glob.glob(os.path.join(workingPath, f"**/*.*"), recursive=True))
 for file in files:
     print(file)
     mutfile = mutagen.File(file, easy=True)

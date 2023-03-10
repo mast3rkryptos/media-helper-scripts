@@ -9,6 +9,7 @@ import re
 
 from pydub import AudioSegment
 
+# TODO: Add logging of missing album artwork
 # TODO: Change skipped log file and messages to timestamped log or "messages.log"
 # TODO: Update to use argparse for command-line arguments
 # TODO: Determine if we want to completely replace existing tags
@@ -16,9 +17,9 @@ from pydub import AudioSegment
 # Configuration variables, would like to move these to argparse command line arguments
 baseInputDir = "D:\\Audio\\Music (Input)"
 baseOutputDir = "D:\\Audio\\Music (Output)"
-types = ['.mp3', '.ogg', '.m4a', '.flac', '.wav', '.wma']
-outputType = "mp3"
-operation = "list"  # Can be convert, copy, fix, list, test
+types = ['.mp3', '.ogg', '.m4a', '.flac', '.wma']
+outputType = "flac"
+operation = "copy"  # Can be convert, copy, fix, list, test
 
 
 # Used to mirror stdout to a log file; helps with debugging unattended test runs
