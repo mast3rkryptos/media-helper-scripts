@@ -15,8 +15,8 @@ from pydub import AudioSegment
 # TODO: Determine if we want to completely replace existing tags
 
 # Configuration variables, would like to move these to argparse command line arguments
-baseInputDir = "D:\\Audio\\Music (Input)"
-baseOutputDir = "D:\\Audio\\Music (Output)"
+baseInputDir = "U:\\Media\\Audio\\Music (Input)\\"
+baseOutputDir = "U:\\Media\\Audio\\Music (Output)"
 types = ['.mp3', '.ogg', '.m4a', '.flac', '.wma']
 outputType = "flac"
 operation = "copy"  # Can be convert, copy, fix, list, test
@@ -90,8 +90,8 @@ with open("library.csv", "w", newline='', encoding='utf-8') as csvfile:
                 print("ERROR: Missing all file tags:", f)
                 skippedFilesLog.write(f"Missing all file tags: {f}\n")
                 continue
-            if ("albumartist" in mutFile.keys() or "artist" in mutFile.keys()) and "album" in mutFile.keys() and "tracknumber" in mutFile.keys() and "title" in mutFile.keys():
-                artist = str(mutFile['albumartist'][0] if "albumartist" in mutFile.keys() else mutFile['artist'][0]).rstrip()
+            if ("albumartist" in mutFile.keys() or "album artist" in mutFile.keys() or "artist" in mutFile.keys()) and "album" in mutFile.keys() and "tracknumber" in mutFile.keys() and "title" in mutFile.keys():
+                artist = str(mutFile['albumartist'][0] if "albumartist" in mutFile.keys() else (mutFile['album artist'][0] if "album artist" in mutFile.keys() else mutFile['artist'][0]).rstrip())
                 album = str(mutFile['album'][0]).rstrip()
                 discNumberStr = str(mutFile['discnumber'][0] if 'discnumber' in mutFile.keys() else "1")
                 if "/" in discNumberStr:
