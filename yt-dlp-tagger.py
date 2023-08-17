@@ -3,10 +3,10 @@ import mutagen
 import os
 import re
 
-workingPath = "D:\\Audio\\Music (Input)\\DOS"
-searchPattern = "(\d+)-.+-(.+)\.flac"
-album = "Divinity: Original Sin"
-albumArtist = "Kirill Pokrovsky"
+workingPath = "D:\\Audio\\Music (Input)\\NA"
+searchPattern = "NA - (.+) ｜ Suite Soundtracks\.flac"
+album = "Suite Soundtracks"
+albumArtist = "Suite Soundtracks"
 disc = "1"
 
 files = []

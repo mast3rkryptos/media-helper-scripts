@@ -9,14 +9,15 @@ import re
 
 from pydub import AudioSegment
 
+# TODO UTF-8 Substitution for tags with prohibited characters
 # TODO: Add logging of missing album artwork
 # TODO: Change skipped log file and messages to timestamped log or "messages.log"
 # TODO: Update to use argparse for command-line arguments
 # TODO: Determine if we want to completely replace existing tags
 
 # Configuration variables, would like to move these to argparse command line arguments
-baseInputDir = "U:\\Media\\Audio\\Music (Input)\\"
-baseOutputDir = "U:\\Media\\Audio\\Music (Output)"
+baseInputDir = "D:\\Audio\\Music (Input)\\"
+baseOutputDir = "D:\\Audio\\Music (Output)"
 types = ['.mp3', '.ogg', '.m4a', '.flac', '.wma']
 outputType = "flac"
 operation = "copy"  # Can be convert, copy, fix, list, test
